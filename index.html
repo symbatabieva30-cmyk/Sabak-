@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude монтаж платформасы</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=PT+Serif:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Қара премиум: қара фон, жалбыз акцент. Бір бағаналы мобильді макет. */
+  --bg:#0b0b0b; --card:#161616; --line:#2a2a2a;
+  --text:#ffffff; --muted:#9a9a9a; --mint:#5DCAA5; --mint-dark:#085041;
+  --display:"Montserrat",system-ui,sans-serif; --body:"Montserrat",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding:24px 18px 48px;display:flex;flex-direction:column;gap:22px}
+.eyebrow{color:var(--mint);font-size:13px;margin:0}
+h1{font-family:var(--display);font-size:30px;font-weight:600;margin:4px 0 0;text-wrap:balance}
+h2{font-size:17px;font-weight:600;margin:0}
+.muted{color:var(--muted);font-size:14px;line-height:1.6;margin:0}
+.bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--mint);width:0;transition:width .3s}
+.progress-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px;font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:10px}
+.lesson{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--text);text-align:left;font:inherit;width:100%;cursor:pointer}
+.lesson:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.num{flex:0 0 36px;height:36px;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mint);font-variant-numeric:tabular-nums}
+.lesson.done .num{background:var(--mint-dark);color:#E1F5EE}
+.lesson .t{flex:1;font-size:15px;line-height:1.35}
+.lesson .s{font-size:12px;color:var(--muted)}
+.lesson.done .s{color:var(--mint)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.panel.hl{border-color:var(--mint)}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font:600 15px var(--body);text-align:center;text-decoration:none;cursor:pointer}
+.btn.primary{background:var(--mint);color:#04342C}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.row{display:flex;gap:10px}
+.row .btn{flex:1}
+.video{aspect-ratio:16/9;border-radius:14px;background:#04342C;overflow:hidden}
+.video iframe{border:0;width:100%;height:100%;display:block}
+.lock{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
+input{width:100%;background:#0f0f0f;border:1px solid var(--line);border-radius:12px;padding:14px;color:var(--text);font:16px var(--body)}
+.err{color:#F09595;font-size:13px;margin:0;min-height:1em}
+#certImg{width:100%;border-radius:10px;display:block}
+.hidden{display:none!important}
+a.inline{color:var(--mint)}
+@media (prefers-reduced-motion:reduce){.bar>i{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap" id="home">
+  <header>
+    <p class="eyebrow">Абиева Сымбат академиясы</p>
+    <h1>Claude монтаж</h1>
+  </header>
+
+  <section>
+    <div class="progress-row"><span>Прогресс</span><span id="progText">0 / 8 сабақ</span></div>
+    <div class="bar"><i id="progBar"></i></div>
+  </section>
+
+  <section class="list" id="list" aria-label="Сабақтар"></section>
+
+  <section class="panel">
+    <h2>Үй тапсырмасы</h2>
+    <p class="muted">Курста үйренгендеріңізді қолданып, өзіңізге ұнаған стильде бір видео жасаңыз. Оны Instagram парақшаңызға пост немесе сторис етіп салып, <a class="inline" href="https://instagram.com/abiyevaas1i">@abiyevaas1i</a> парақшасын белгілеңіз.</p>
+  </section>
+
+  <section class="panel" id="certPanel">
+    <h2>Сертификат</h2>
+    <p class="lock" id="certLock">Барлық сабақты өткен соң ашылады. Қалды: <span id="leftCount">8</span></p>
+    <div id="certForm" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+      <label for="nameInput" class="muted">Сертификатқа жазылатын атыңыз бен тегіңіз</label>
+      <input id="nameInput" type="text" autocomplete="name" placeholder="Айгерім Нұрланқызы">
+      <p class="err" id="nameErr"></p>
+      <button class="btn primary" id="makeCert" type="button">Сертификат алу</button>
+    </div>
+    <div id="certOut" class="hidden" style="flex-direction:column;gap:10px">
+      <img id="certImg" alt="Сертификат">
+      <p class="muted">Суретті басып тұрып, «Сохранить» таңдаңыз.</p>
+    </div>
+  </section>
+</main>
+
+<main class="wrap hidden" id="lessonView">
+  <button class="btn ghost" id="back" type="button" style="width:auto;align-self:flex-start;padding:10px 16px">← Сабақтар</button>
+  <header>
+    <p class="eyebrow" id="lNum"></p>
+    <h1 id="lTitle"></h1>
+  </header>
+  <div class="video" id="lVideo"><iframe id="lFrame" title="Сабақ видеосы" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;fullscreen" allowfullscreen></iframe></div>
+  <p class="muted">Видеоны көріп болған соң, «Аяқтадым» батырмасын басыңыз.</p>
+  <div class="row">
+    <button class="btn ghost" id="prev" type="button">Артқа</button>
+    <button class="btn primary" id="doneNext" type="button">Аяқтадым</button>
+  </div>
+</main>
+
+<canvas id="certCanvas" width="1600" height="900" class="hidden"></canvas>
+
+<script>
+const LIB = "811355";
+const LESSONS = [
+  {n:"Кіріспе", t:"Танысу", v:"61199088-b351-41b2-ac59-660bce8dd3a4"},
+  {n:"1-сабақ", t:"Видео монтаж", v:"12d7192f-94f7-47f1-a531-2632e6031956"},
+  {n:"2-сабақ", t:"Анимациялық видео", v:"9435394e-a648-4f94-ae8e-af12e3c5b356"},
+  {n:"3-сабақ", t:"Плагин", v:"36150f75-ee59-44ec-9e6f-d15a1e569495"},
+  {n:"4-сабақ", t:"Скилдар", v:"8e53040e-cd66-49a6-9146-49549cb7e553"},
+  {n:"5-сабақ", t:"Сайт жасау", v:"a925481e-3f6c-44e7-abe5-012b2b4c2113"},
+  {n:"6-сабақ", t:"Тойға шақыру сайтын жасау", v:"eb363b10-b345-4b4b-999b-34bc0b537234"},
+  {n:"7-сабақ", t:"Дикторлық дыбыс", v:"42b16512-9355-40af-ab7b-7a97e508735a"}
+];
+const embedUrl = l => `https://player.mediadelivery.net/embed/${LIB}/${l.v}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`;
+const TG = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined ? window.Telegram.WebApp : null;
+if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor("#0b0b0b"); TG.setBackgroundColor && TG.setBackgroundColor("#0b0b0b"); } catch(e){} }
+
+const KEY = "cm_done_v1";
+let done = new Set();
+function load(){
+  try { const v = JSON.parse(localStorage.getItem(KEY)||"[]"); v.forEach(i=>done.add(i)); } catch(e){}
+  if (TG && TG.CloudStorage && TG.isVersionAtLeast && TG.isVersionAtLeast("6.9")) {
+    try { TG.CloudStorage.getItem(KEY,(err,val)=>{ if(!err && val){ try{ JSON.parse(val).forEach(i=>done.add(i)); render(); }catch(e){} } }); } catch(e){}
+  }
+}
+function save(){
+  const s = JSON.stringify([...done]);
+  try { localStorage.setItem(KEY,s); } catch(e){}
+  if (TG && TG.CloudStorage && TG.isVersionAtLeast && TG.isVersionAtLeast("6.9")) { try { TG.CloudStorage.setItem(KEY,s); } catch(e){} }
+}
+
+const $ = id => document.getElementById(id);
+function render(){
+  const list = $("list"); list.innerHTML = "";
+  LESSONS.forEach((l,i)=>{
+    const b = document.createElement("button");
+    b.type="button"; b.className="lesson"+(done.has(i)?" done":"");
+    b.innerHTML = `<span class="num">${done.has(i)?"✓":(i===0?"0":i)}</span><span class="t">${l.t}<br><span class="s">${done.has(i)?"Өтілді":l.n}</span></span><span aria-hidden="true" style="color:var(--muted)">›</span>`;
+    b.onclick = ()=>openLesson(i);
+    list.appendChild(b);
+  });
+  const c = done.size, total = LESSONS.length;
+  $("progText").textContent = `${c} / ${total} сабақ`;
+  $("progBar").style.width = Math.round(c/total*100)+"%";
+  $("leftCount").textContent = total - c;
+  const all = c === total;
+  $("certLock").classList.toggle("hidden", all);
+  $("certForm").classList.toggle("hidden", !all);
+  $("certPanel").classList.toggle("hl", all);
+}
+
+let cur = 0;
+function openLesson(i){
+  cur = i; const l = LESSONS[i];
+  $("lNum").textContent = l.n; $("lTitle").textContent = l.t;
+  $("lFrame").src = embedUrl(l);
+  $("prev").textContent = i===0 ? "Артқа" : "Алдыңғы";
+  $("doneNext").textContent = i===LESSONS.length-1 ? "Аяқтадым" : "Аяқтадым, келесі";
+  $("home").classList.add("hidden"); $("lessonView").classList.remove("hidden");
+  window.scrollTo(0,0);
+  if (TG && TG.BackButton) { try { TG.BackButton.show(); } catch(e){} }
+}
+function goHome(){
+  $("lFrame").src = "about:blank";
+  $("lessonView").classList.add("hidden"); $("home").classList.remove("hidden");
+  render(); window.scrollTo(0,0);
+  if (TG && TG.BackButton) { try { TG.BackButton.hide(); } catch(e){} }
+}
+$("back").onclick = goHome;
+if (TG && TG.BackButton) { try { TG.BackButton.onClick(goHome); } catch(e){} }
+$("prev").onclick = ()=> cur===0 ? goHome() : openLesson(cur-1);
+$("doneNext").onclick = ()=>{ done.add(cur); save(); cur < LESSONS.length-1 ? openLesson(cur+1) : goHome(); };
+
+
+$("nameInput").oninput = ()=>{ $("nameErr").textContent=""; };
+$("makeCert").onclick = async ()=>{
+  const name = $("nameInput").value.trim().replace(/\s+/g," ");
+  if (name.length < 3) { $("nameErr").textContent = "Атыңыз бен тегіңізді жазыңыз."; return; }
+  try { await document.fonts.ready; } catch(e){}
+  drawCert(name);
+};
+
+function drawCert(name){
+  const c = $("certCanvas"), x = c.getContext("2d"), W=1600, H=900;
+  const OR="#D85A30", D1="#4A1B0C", D2="#712B13", D3="#993C1D";
+  x.fillStyle=OR; x.fillRect(0,0,W,H);
+  roundRect(x,28,28,W-56,H-56,24); x.fillStyle="#FFF8F3"; x.fill();
+  // top-left monogram
+  x.fillStyle=OR; x.beginPath(); x.arc(118,118,40,0,Math.PI*2); x.fill();
+  x.fillStyle="#fff"; x.font="600 30px Montserrat"; x.textAlign="center"; x.textBaseline="middle"; x.fillText("СА",118,120);
+  x.textAlign="left"; x.fillStyle=D3; x.font="500 28px Montserrat"; x.fillText("@abiyevaas1i",176,120);
+  x.textAlign="right"; x.fillStyle=OR; x.font="600 30px Montserrat";
+  spaced(x,"СЕРТИФИКАТ",W-90,120,8,"right");
+  // center
+  x.textAlign="center"; x.fillStyle=D2; x.font="400 32px Montserrat"; x.fillText("Осы сертификат беріледі",W/2,330);
+  let size=92; x.font=`700 ${size}px "PT Serif"`;
+  while (x.measureText(name).width > W-260 && size>40){ size-=4; x.font=`700 ${size}px "PT Serif"`; }
+  x.fillStyle=D1; x.fillText(name,W/2,450);
+  x.strokeStyle=OR; x.lineWidth=2; x.beginPath(); x.moveTo(W/2-120,530); x.lineTo(W/2+120,530); x.stroke();
+  x.fillStyle=D2; x.font="400 32px Montserrat"; x.fillText("«Claude монтаж» курсын толық аяқтағаны үшін",W/2,590);
+  // bottom
+  x.textAlign="left"; x.fillStyle=D1; x.font='italic 400 40px "PT Serif"'; x.fillText("Абиева Сымбат",110,760);
+  x.strokeStyle="#C9B8AE"; x.lineWidth=2; x.beginPath(); x.moveTo(110,792); x.lineTo(420,792); x.stroke();
+  x.fillStyle=D3; x.font="400 26px Montserrat"; x.fillText("Курс авторы",110,826);
+  const d=new Date(), ds=String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
+  x.textAlign="right"; x.fillStyle=D1; x.font="500 36px Montserrat"; x.fillText(ds,W-110,760);
+  x.beginPath(); x.moveTo(W-330,792); x.lineTo(W-110,792); x.stroke();
+  x.fillStyle=D3; x.font="400 26px Montserrat"; x.fillText("Күні",W-110,826);
+  // award badge
+  x.strokeStyle=OR; x.lineWidth=4; x.beginPath(); x.arc(W/2,775,62,0,Math.PI*2); x.stroke();
+  x.beginPath(); x.arc(W/2,760,24,0,Math.PI*2); x.stroke();
+  x.beginPath(); x.moveTo(W/2-16,780); x.lineTo(W/2-24,815); x.lineTo(W/2,802); x.lineTo(W/2+24,815); x.lineTo(W/2+16,780); x.stroke();
+  $("certImg").src = c.toDataURL("image/png");
+  $("certOut").classList.remove("hidden"); $("certOut").style.display="flex";
+  $("certOut").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function roundRect(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();}
+function spaced(x,str,px,py,gap,align){
+  const w=[...str].reduce((s,ch)=>s+x.measureText(ch).width+gap,0)-gap; let cx = align==="right"? px-w : px;
+  x.textAlign="left"; for(const ch of str){ x.fillText(ch,cx,py); cx+=x.measureText(ch).width+gap; }
+}
+
+load(); render();
+</script>
+</body>
+</html>
