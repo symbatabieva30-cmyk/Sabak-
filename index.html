@@ -52,7 +52,19 @@ a.inline{color:var(--mint)}
 </style>
 </head>
 <body>
-<main class="wrap" id="home">
+<main class="wrap hidden" id="gate">
+  <header>
+    <p class="eyebrow">Абиева Сымбат академиясы</p>
+    <h1>Claude монтаж</h1>
+  </header>
+  <section class="panel">
+    <h2>Курсты Telegram арқылы ашыңыз</h2>
+    <p class="muted">Сабақтар тек Telegram ішінде ашылады. Курс тобындағы бекітілген постағы сілтемені басыңыз.</p>
+    <a class="btn primary" href="https://t.me/abiyevaas1i_bot/sabak">Telegram-да ашу</a>
+  </section>
+</main>
+
+<main class="wrap hidden" id="home">
   <header>
     <p class="eyebrow">Абиева Сымбат академиясы</p>
     <h1>Claude монтаж</h1>
@@ -115,7 +127,7 @@ const LESSONS = [
   {n:"7-сабақ", t:"Дикторлық дыбыс", v:"42b16512-9355-40af-ab7b-7a97e508735a"}
 ];
 const embedUrl = l => `https://player.mediadelivery.net/embed/${LIB}/${l.v}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`;
-const TG = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined ? window.Telegram.WebApp : null;
+const TG = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData ? window.Telegram.WebApp : null;
 if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor("#0b0b0b"); TG.setBackgroundColor && TG.setBackgroundColor("#0b0b0b"); } catch(e){} }
 
 const KEY = "cm_done_v1";
@@ -223,7 +235,12 @@ function spaced(x,str,px,py,gap,align){
   x.textAlign="left"; for(const ch of str){ x.fillText(ch,cx,py); cx+=x.measureText(ch).width+gap; }
 }
 
-load(); render();
+if (!TG) {
+  document.getElementById("gate").classList.remove("hidden");
+} else {
+  document.getElementById("home").classList.remove("hidden");
+  load(); render();
+}
 </script>
 </body>
 </html>
