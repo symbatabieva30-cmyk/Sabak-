@@ -93,7 +93,8 @@ a.inline{color:var(--mint)}
     </div>
     <div id="certOut" class="hidden" style="flex-direction:column;gap:10px">
       <img id="certImg" alt="Сертификат">
-      <p class="muted">Суретті басып тұрып, «Сохранить» таңдаңыз.</p>
+      <button class="btn primary" id="saveCert" type="button">Суретті сақтау</button>
+      <p class="muted">Батырманы басқанда сақтау терезесі ашылмаса, сертификат Safari-де ашылады. Сол жерде суретті басып тұрып, «Сохранить в Фото» таңдаңыз.</p>
     </div>
   </section>
 </main>
@@ -195,8 +196,8 @@ $("makeCert").onclick = async ()=>{
   drawCert(name);
 };
 
-function drawCert(name){
-  const c = $("certCanvas"), x = c.getContext("2d"), W=1600, H=900;
+function paint(c,name,ds){
+  const x = c.getContext("2d"), W=1600, H=900;
   const OR="#D85A30", D1="#4A1B0C", D2="#712B13", D3="#993C1D";
   x.fillStyle=OR; x.fillRect(0,0,W,H);
   roundRect(x,28,28,W-56,H-56,24); x.fillStyle="#FFF8F3"; x.fill();
@@ -217,7 +218,6 @@ function drawCert(name){
   x.textAlign="left"; x.fillStyle=D1; x.font='italic 400 40px "PT Serif"'; x.fillText("Абиева Сымбат",110,760);
   x.strokeStyle="#C9B8AE"; x.lineWidth=2; x.beginPath(); x.moveTo(110,792); x.lineTo(420,792); x.stroke();
   x.fillStyle=D3; x.font="400 26px Montserrat"; x.fillText("Курс авторы",110,826);
-  const d=new Date(), ds=String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
   x.textAlign="right"; x.fillStyle=D1; x.font="500 36px Montserrat"; x.fillText(ds,W-110,760);
   x.beginPath(); x.moveTo(W-330,792); x.lineTo(W-110,792); x.stroke();
   x.fillStyle=D3; x.font="400 26px Montserrat"; x.fillText("Күні",W-110,826);
@@ -225,10 +225,30 @@ function drawCert(name){
   x.strokeStyle=OR; x.lineWidth=4; x.beginPath(); x.arc(W/2,775,62,0,Math.PI*2); x.stroke();
   x.beginPath(); x.arc(W/2,760,24,0,Math.PI*2); x.stroke();
   x.beginPath(); x.moveTo(W/2-16,780); x.lineTo(W/2-24,815); x.lineTo(W/2,802); x.lineTo(W/2+24,815); x.lineTo(W/2+16,780); x.stroke();
+}
+function certDate(){const d=new Date();return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();}
+let certInfo=null;
+function drawCert(name){
+  const c=$("certCanvas"), ds=certDate();
+  paint(c,name,ds); certInfo={n:name,d:ds};
   $("certImg").src = c.toDataURL("image/png");
   $("certOut").classList.remove("hidden"); $("certOut").style.display="flex";
   $("certOut").scrollIntoView({behavior:"smooth",block:"start"});
 }
+async function saveCert(){
+  const c=$("certCanvas");
+  try{
+    const blob=await new Promise(r=>c.toBlob(r,"image/png"));
+    const file=new File([blob],"sertifikat.png",{type:"image/png"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file]}); return; }
+  }catch(e){ if(e && e.name==="AbortError") return; }
+  const enc=btoa(unescape(encodeURIComponent(JSON.stringify(certInfo)))).replace(/=+$/,"");
+  const url=location.origin+location.pathname.replace(/index\.html$/,"")+"cert.html#"+enc;
+  if(TG && TG.openLink){ try{ TG.openLink(url); return; }catch(e){} }
+  location.href=url;
+}
+$("saveCert").onclick=saveCert;
+
 function roundRect(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();}
 function spaced(x,str,px,py,gap,align){
   const w=[...str].reduce((s,ch)=>s+x.measureText(ch).width+gap,0)-gap; let cx = align==="right"? px-w : px;

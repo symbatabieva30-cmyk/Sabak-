@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сертификат</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=PT+Serif:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0b0b0b;color:#fff;font-family:"Montserrat",system-ui,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px}
+img{width:100%;border-radius:10px;display:block;-webkit-touch-callout:default}
+p{color:#bdbdbd;line-height:1.6;margin:0}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <img id="img" alt="Сертификат">
+  <p id="msg">Суретті басып тұрып, «Сохранить в Фото» таңдаңыз.</p>
+</main>
+<canvas id="c" width="1600" height="900" style="display:none"></canvas>
+<script>
+function paint(c,name,ds){
+  const x = c.getContext("2d"), W=1600, H=900;
+  const OR="#D85A30", D1="#4A1B0C", D2="#712B13", D3="#993C1D";
+  x.fillStyle=OR; x.fillRect(0,0,W,H);
+  roundRect(x,28,28,W-56,H-56,24); x.fillStyle="#FFF8F3"; x.fill();
+  // top-left monogram
+  x.fillStyle=OR; x.beginPath(); x.arc(118,118,40,0,Math.PI*2); x.fill();
+  x.fillStyle="#fff"; x.font="600 30px Montserrat"; x.textAlign="center"; x.textBaseline="middle"; x.fillText("СА",118,120);
+  x.textAlign="left"; x.fillStyle=D3; x.font="500 28px Montserrat"; x.fillText("@abiyevaas1i",176,120);
+  x.textAlign="right"; x.fillStyle=OR; x.font="600 30px Montserrat";
+  spaced(x,"СЕРТИФИКАТ",W-90,120,8,"right");
+  // center
+  x.textAlign="center"; x.fillStyle=D2; x.font="400 32px Montserrat"; x.fillText("Осы сертификат беріледі",W/2,330);
+  let size=92; x.font=`700 ${size}px "PT Serif"`;
+  while (x.measureText(name).width > W-260 && size>40){ size-=4; x.font=`700 ${size}px "PT Serif"`; }
+  x.fillStyle=D1; x.fillText(name,W/2,450);
+  x.strokeStyle=OR; x.lineWidth=2; x.beginPath(); x.moveTo(W/2-120,530); x.lineTo(W/2+120,530); x.stroke();
+  x.fillStyle=D2; x.font="400 32px Montserrat"; x.fillText("«Claude монтаж» курсын толық аяқтағаны үшін",W/2,590);
+  // bottom
+  x.textAlign="left"; x.fillStyle=D1; x.font='italic 400 40px "PT Serif"'; x.fillText("Абиева Сымбат",110,760);
+  x.strokeStyle="#C9B8AE"; x.lineWidth=2; x.beginPath(); x.moveTo(110,792); x.lineTo(420,792); x.stroke();
+  x.fillStyle=D3; x.font="400 26px Montserrat"; x.fillText("Курс авторы",110,826);
+  x.textAlign="right"; x.fillStyle=D1; x.font="500 36px Montserrat"; x.fillText(ds,W-110,760);
+  x.beginPath(); x.moveTo(W-330,792); x.lineTo(W-110,792); x.stroke();
+  x.fillStyle=D3; x.font="400 26px Montserrat"; x.fillText("Күні",W-110,826);
+  // award badge
+  x.strokeStyle=OR; x.lineWidth=4; x.beginPath(); x.arc(W/2,775,62,0,Math.PI*2); x.stroke();
+  x.beginPath(); x.arc(W/2,760,24,0,Math.PI*2); x.stroke();
+  x.beginPath(); x.moveTo(W/2-16,780); x.lineTo(W/2-24,815); x.lineTo(W/2,802); x.lineTo(W/2+24,815); x.lineTo(W/2+16,780); x.stroke();
+}
+function roundRect(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();}
+function spaced(x,str,px,py,gap,align){
+  const w=[...str].reduce((s,ch)=>s+x.measureText(ch).width+gap,0)-gap; let cx = align==="right"? px-w : px;
+  x.textAlign="left"; for(const ch of str){ x.fillText(ch,cx,py); cx+=x.measureText(ch).width+gap; }
+}
+(async function(){
+  let info=null;
+  try{ const h=location.hash.slice(1); info=JSON.parse(decodeURIComponent(escape(atob(h)))); }catch(e){}
+  if(!info||!info.n){ document.getElementById("msg").textContent="Сертификат табылмады. Курс платформасынан қайта ашыңыз."; return; }
+  try{ await document.fonts.ready; await Promise.all([document.fonts.load('700 92px "PT Serif"'),document.fonts.load('italic 400 40px "PT Serif"'),document.fonts.load('400 32px Montserrat')]); }catch(e){}
+  const c=document.getElementById("c"); paint(c,info.n,info.d);
+  document.getElementById("img").src=c.toDataURL("image/png");
+})();
+</script>
+</body>
+</html>
