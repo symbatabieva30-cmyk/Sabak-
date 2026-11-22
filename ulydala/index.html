@@ -26,6 +26,9 @@
   .btn { font-family:"PT Serif",serif; font-size:21px; font-weight:700; color:var(--brown); background:var(--gold); border:0; border-radius:16px; padding:14px 40px; box-shadow:0 5px 0 #854F0B; margin-top:8px; cursor:pointer; }
   .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #854F0B; }
   .btn.ghost { background:transparent; color:var(--gold2); border:2px solid var(--bronze); box-shadow:none; font-size:17px; padding:10px 24px; }
+  .name-in { width:100%; font-size:19px; padding:14px 16px; border-radius:14px; border:2px solid var(--bronze); background:var(--paper); color:var(--brown); font-family:"PT Serif",serif; text-align:center; outline:none; margin-top:4px; -webkit-user-select:text; user-select:text; }
+  .name-in:focus { border-color:var(--gold); }
+  .err { color:#f09595; font-size:14px; min-height:20px; margin-top:6px; }
   .emblem { width:120px; height:120px; margin:8px auto 0; }
 
   .bar { display:flex; justify-content:space-between; align-items:center; width:100%; color:var(--gold2); font-size:15px; font-weight:600; padding:2px 4px 10px; }
@@ -79,6 +82,8 @@
       </svg>
       <h1>Ұлы Дала жолы</h1>
       <p class="lead">Отырардан Астанаға дейін тарихи сапарға шық! Әр қалада 5 сұрақ бар. Дұрыс жауап беріп, келесі қаланың жолын аш.</p>
+      <input class="name-in" id="name" maxlength="30" placeholder="Атыңды жаз" autocomplete="off">
+      <div class="err" id="name-err"></div>
       <button class="btn" id="b-start">Сапарды бастау</button>
       <svg class="orn" data-orn style="margin-top:14px;transform:scaleY(-1)"></svg>
     </div>
@@ -134,6 +139,7 @@
       <div class="cert">
         <p class="qcity">Құрмет грамотасы</p>
         <h2>Ұлы Дала батыры</h2>
+        <p class="serif" id="f-name" style="font-size:24px;font-weight:700;color:var(--brown);margin:2px 0 8px"></p>
         <p style="font-size:16px;line-height:1.55">Сен Отырардан Астанаға дейінгі тарихи жолдан сүрінбей өттің! Ата тарихын білетін нағыз батырсың.</p>
         <div class="stars" id="f-stars" style="margin-top:8px"></div>
         <p style="margin-top:6px;font-weight:700" id="f-coins"></p>
@@ -180,14 +186,25 @@ const LEVELS = [
       ['Астананың символы болып табылатын 97 метрлік мұнара қалай аталады?', 'Бәйтерек', ['Хан Шатыр','Ақорда','Нұр Әлем']],
     ]},
 ];
+// Google Sheets веб-қосымшасының сілтемесі (Apps Script)
+const SCRIPT_URL = '';
+
 const PRAISE = ['Бәрекелді, батыр!','Дұрыс! Жарайсың!','Керемет!','Тамаша білім!','Нағыз шежіреші!'];
 
 /* ---------- state ---------- */
-let save = { done:0, coins:0, stars:[] };
-try { const s = JSON.parse(localStorage.getItem('ulydala')); if (s && typeof s.done === 'number') save = s; } catch(e){}
+let save = { done:0, coins:0, stars:[], name:'', id:'', correct:0, answered:0 };
+try { const s = JSON.parse(localStorage.getItem('ulydala')); if (s && typeof s.done === 'number') save = Object.assign(save, s); } catch(e){}
 function persist(){ try { localStorage.setItem('ulydala', JSON.stringify(save)); } catch(e){} }
 
 let lvl, qi, lives, lvlCoins, order, locked, results;
+
+/* ---------- results to Google Sheets ---------- */
+function report(){
+  if (!SCRIPT_URL || !save.name) return;
+  const reached = save.done >= LEVELS.length ? 'Бәрін бітірді 🏆' : save.done > 0 ? LEVELS[save.done - 1].city : 'Әлі өтпеді';
+  const data = { id:save.id, name:save.name, city:reached, correct:save.correct, total:save.answered, coins:save.coins, finished:save.done >= LEVELS.length };
+  try { fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body:JSON.stringify(data) }).catch(()=>{}); } catch(e){}
+}
 
 /* ---------- helpers ---------- */
 const $ = id => document.getElementById(id);
@@ -316,8 +333,9 @@ function renderQ(){
 function pick(btn, t, a){
   if (locked) return; locked = true;
   const msg = $('q-msg');
+  save.answered++;
   if (t === a) {
-    btn.classList.add('ok'); sOk(); lvlCoins += 20; results[qi] = 'ok';
+    btn.classList.add('ok'); sOk(); lvlCoins += 20; results[qi] = 'ok'; save.correct++;
     msg.style.color = '#97C459'; msg.textContent = PRAISE[Math.floor(Math.random()*PRAISE.length)];
   } else {
     btn.classList.add('bad'); sBad(); lives--; results[qi] = 'bad';
@@ -339,7 +357,7 @@ function levelWin(){
   save.stars[lvl] = Math.max(save.stars[lvl] || 0, stars);
   const first = lvl === save.done;
   if (first) save.done++;
-  persist(); sWin();
+  persist(); report(); sWin();
   if (save.done >= LEVELS.length && first) return showFinal();
   $('r-title').textContent = `${LEVELS[lvl].city} бағындырылды!`;
   $('r-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3-stars);
@@ -349,6 +367,7 @@ function levelWin(){
   show('s-result');
 }
 function levelFail(){
+  persist(); report();
   $('r-title').textContent = 'Қалқандар бітті';
   $('r-stars').textContent = '';
   $('r-text').textContent = `Батыр жеңілгенде берілмейді! ${LEVELS[lvl].city} сынағын қайта байқап көр.`;
@@ -361,14 +380,26 @@ function showFinal(){
   const n = total >= 11 ? 3 : total >= 8 ? 2 : 1;
   $('f-stars').textContent = '★'.repeat(n) + '☆'.repeat(3-n);
   $('f-coins').textContent = `Жиналған тиын: ${save.coins}`;
+  $('f-name').textContent = save.name;
   show('s-final');
 }
 
 /* ---------- buttons ---------- */
-$('b-start').onclick = () => { if (save.done >= LEVELS.length) return showFinal(); drawMap(); show('s-map'); };
+$('name').value = save.name || '';
+$('name').addEventListener('input', () => { $('name-err').textContent = ''; });
+$('b-start').onclick = () => {
+  const n = $('name').value.trim().replace(/\s+/g,' ');
+  if (n.length < 2) { $('name-err').textContent = 'Алдымен атыңды жаз'; $('name').focus(); return; }
+  if (n !== save.name) {
+    save = { done:0, coins:0, stars:[], name:n, id: Date.now().toString(36) + Math.random().toString(36).slice(2,8), correct:0, answered:0 };
+  }
+  persist(); report();
+  if (save.done >= LEVELS.length) return showFinal();
+  drawMap(); show('s-map');
+};
 $('b-go').onclick = startLevel;
 $('b-back').onclick = () => { drawMap(); show('s-map'); };
-$('b-restart').onclick = () => { save = { done:0, coins:0, stars:[] }; persist(); drawMap(); show('s-map'); };
+$('b-restart').onclick = () => { save = { done:0, coins:0, stars:[], name:save.name, id:save.id, correct:0, answered:0 }; persist(); report(); drawMap(); show('s-map'); };
 </script>
 </body>
 </html>
